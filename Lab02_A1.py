@@ -1,8 +1,9 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.preprocessing import StandardScaler
 
-print("A1:")
 #A1
 df=pd.read_excel("Lab02.xlsx",sheet_name="Purchase_data")
 df=df.iloc[:,:5]
@@ -17,13 +18,11 @@ c=np.matmul(x1_pinv,y1)
 print(x1_pinv)
 print(c)
 
-print("A2:")
 #A2
 df['status']=df['Payment (Rs)'].apply(lambda x:'rich' if x>200 else 'poor')
 y1_status=df['status']
 print(y1_status)
 
-print("A3:")
 #A3
 df=pd.read_excel("Lab02.xlsx",sheet_name="IRCTC_Stock_Price")
 price=df["Price"]
@@ -115,8 +114,7 @@ def scatter_plot():
     plt.grid(True)
     plt.show()
 
-print("A4:")
-
+#A4
 df1=pd.read_excel("Lab02.xlsx",sheet_name="thyroid0387_UCI")
 def mean_var_std():
     numeric_cols = ['age','TSH','T3','TT4','T4U','FTI','TBG']
@@ -125,7 +123,6 @@ def mean_var_std():
        df1[col] = pd.to_numeric(df1[col], errors='coerce')
     return df1[numeric_cols].mean(), df1[numeric_cols].var(), df1[numeric_cols].std()
 
-print("A5:")
 # A5
 def similarity_measure():
     doc1=df1.iloc[0]
@@ -158,7 +155,6 @@ def similarity_measure():
         return "JC is appropriate than SMC"
     return jc, smc
 
-print("A6:")
 # A6
 def cosine_similarity():
     num_data=df1.select_dtypes(include=['int64','float64']) # taking only numeric data
@@ -171,6 +167,95 @@ def cosine_similarity():
     norm_B=np.linalg.norm(B)
     return dot_AB/(norm_A*norm_B)
 
+#A7
+def similarity_between_20vectors():
+    df2=df1.iloc[:20]
+    binary_col = [
+    'on thyroxine', 'query on thyroxine', 'on antithyroid medication',
+    'sick', 'pregnant', 'thyroid surgery', 'I131 treatment',
+    'query hypothyroid', 'query hyperthyroid', 'lithium',
+    'goitre', 'tumor', 'hypopituitary', 'psych',
+    'TSH measured', 'T3 measured', 'TT4 measured',
+    'T4U measured', 'FTI measured', 'TBG measured'
+    ]
+    def to_binary(x):
+        return 1 if x in ['t', 'True', True, 1] else 0
+    binary_data = df2[binary_col].apply(lambda col: col.map(to_binary)).values
+    def jc(vec1,vec2):
+     f00=f01=f10=f11=0
+     for i in range(len(vec1)):
+        if vec1[i]==0 and vec2[i]==0:
+            f00+=1
+        elif vec1[i]==0 and vec2[i]==1:
+            f01+=1
+        elif vec1[i]==1 and vec2[i]==0:
+            f10+=1
+        else:
+            f11+=1
+     return f11/(f01+f10+f11)
+    def smc(vec1,vec2):
+     f00=f01=f10=f11=0
+     for i in range(len(vec1)):
+        if vec1[i]==0 and vec2[i]==0:
+            f00+=1
+        elif vec1[i]==0 and vec2[i]==1:
+            f01+=1
+        elif vec1[i]==1 and vec2[i]==0:
+            f10+=1
+        else:
+            f11+=1
+     return (f11+f00)/(f00+f01+f10+f11)
+    n=20
+    jc_matrix=np.zeros((n,n))
+    smc_matrix=np.zeros((n,n))
+    for i in range(n):
+        for j in range(n):
+            jc_matrix[i,j]=jc(binary_data[i],binary_data[j])
+            smc_matrix[i,j]=smc(binary_data[i],binary_data[j])
+    num_data=df1.select_dtypes(include=['int64','float64']) # taking only numeric data
+    num_data=num_data.apply(pd.to_numeric,errors="coerce") # for removing missing values and changing to NAN
+    num_data = num_data.fillna(0) # converting NAN to 0 because missing value has no contribution
+    num_values=num_data.values
+    def cosine(A,B):
+        dot_AB=np.dot(A,B)
+        norm_A=np.linalg.norm(A)
+        norm_B=np.linalg.norm(B)
+        return dot_AB/(norm_A*norm_B)
+    cosine_matrix=np.zeros((n,n))
+    for i in range(n):
+        for j in range(n):
+            cosine_matrix[i,j]=cosine(num_values[i],num_values[j])
+    # JC heatmap
+    sns.heatmap(jc_matrix)
+    plt.title("JC")
+    plt.show()
+    # SMC heatmap
+    sns.heatmap(smc_matrix)
+    plt.title("SMC")
+    plt.show()
+    # COSINE heatmap
+    sns.heatmap(cosine_matrix)
+    plt.title("Cosine")
+    plt.show()
+    
+# A8
+def imputation():
+    numeric_col=['age','TSH','T3','TT4','T4U','FTI','TBG']
+    for col in numeric_col:
+        df1[col]=pd.to_numeric(df1[col],errors='coerce') # converting to numeric values
+        df1[col]=df1[col].fillna(df1[col].median()) # fill missing values with meadian
+    categorical_col=df1.select_dtypes(include=['object']).columns
+    for col in categorical_col:
+        df1[col]=df1[col].fillna(df1[col].mode()[0]) # fill missing values with mode
+    return df1
+
+# A9
+def normalization():
+    numeric_col=['age','TSH','T3','TT4','T4U','FTI','TBG']
+    scaler=StandardScaler() # standardization technique is used
+    df1[numeric_col]=scaler.fit_transform(df1[numeric_col])
+    return df1
+    
 if __name__== "__main__":
     price = df["Price"]
     print(mean_wednesday(price))
@@ -183,3 +268,6 @@ if __name__== "__main__":
     print(mean_var_std())
     print(similarity_measure())
     print(cosine_similarity())
+    print(similarity_between_20vectors())
+    print(imputation())
+    print(normalization())
